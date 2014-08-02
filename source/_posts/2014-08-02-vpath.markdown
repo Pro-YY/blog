@@ -1,0 +1,267 @@
+---
+layout: post
+title: "Makefile Vpath原理分析及使用场景"
+date: 2014-08-02 09:42:29 +0800
+comments: true
+categories: Compile
+---
+
+## Makefile 参考手册
+英文：http://www.gnu.org/software/make/manual/make.html
+
+中文：http://www.yayu.org/book/gnu_make/
+
+- 第4.5节 [Searching Directories for Prerequisites](http://www.gnu.org/software/make/manual/make.html#Directory-Search)（[目录搜寻](http://www.yayu.org/book/gnu_make/make-04.html#_gnu_make_4.5)）
+- 第10.5.3节 [Automatic Variables](http://www.gnu.org/software/make/manual/make.html#Automatic-Variables)（[自动化变量](http://www.yayu.org/book/gnu_make/make-10.html#_gnu_make_10.5.3)）
+
+##VPATH原理
+
+###VPATH变量
+在Makefile中，通过变量“VPATH”可以指定依赖文件的搜索路径，在规则的依赖文件在当前目录不存在时，make会在此变量所指定的目录下去寻找这些依赖文件。一般用此变量来说明规则中的依赖文件的搜索路径。其实“VPATH”变量所指定的是Makefile中所有文件的搜索路径，包括依赖文件和目标文件。变量“VPATH”的定义中，使用空格或者冒号（:）将多个目录分开。make搜索的目录顺序按照变量“VPATH”定义中顺序进行（当前目录永远是第一搜索目录）。
+
+###目录搜寻过程
+
+1. If a target file does not exist at the path specified in the makefile, directory search is performed.
+
+2. If the directory search is successful, that path is kept and this file is tentatively stored as the target.
+
+3. All prerequisites of this target are examined using this same method.
+
+4. After processing the prerequisites, the target may or may not need to be rebuilt:
+
+a. If the target does not need to be rebuilt, the path to the file found during directory search is used for any prerequisite lists which contain this target. In short, if make doesn't need to rebuild the target then you use the path found via directory search.
+
+b. If the target does need to be rebuilt (is out-of-date), the pathname found during directory search is thrown away, and the target is rebuilt using the file name specified in the makefile. In short, if make must rebuild, then the target is rebuilt locally, not in the directory found via directory search.
+
+###自动化变量
+make在执行时，通过目录搜索得到的目标的依赖文件可能会在其它目录（此时依赖文件为文件的完整路径名），但是已经存在的规则命令却不能发生变化。因此，书写命令时我们必须保证当依赖文件在其它目录下被发现时规则的命令能够正确执行。
+
+    "$^": a list of all the prerequisites of the rule, including the names of the directories in which they were found
+    通过目录搜索得到的依赖文件的完整路径名（目录+一般文件名）列表
+
+    "$<": the first prerequisite
+    通过目录搜索得到的依赖文件列表的第一个依赖文件
+    
+    "$@": the target
+    规则的目标
+
+##一个简单的实例
+
+###普通当前单目录build
+    $ tree vpath-test
+    vpath-test
+    ├── main.c
+    ├── Makefile
+    ├── vp.c
+    └── vp.h
+
+*Makefile*:
+
+{% highlight makefile linenos %}
+objects=main.o vp.o
+vp-test: $(objects)
+    gcc -o $@ $(objects)
+main.o: main.c
+    gcc -o $@ -c main.c
+vp.o: vp.c vp.h
+    gcc -o $@ -c vp.c
+.PHONY:
+clean:
+    -rm -f $(objects) vp-test
+{% endhighlight %}
+
+{% highlight bash %}
+$ make
+gcc -o main.o -c main.c
+gcc -o vp.o -c vp.c
+gcc -o vp-test main.o vp.o
+{% endhighlight %}
+
+###使用VPATH,build与source目录分离
+
+    $ tree vpath-test
+    vpath-test
+    ├── build
+    │   └── Makefile
+    └── source
+        ├── main.c
+        ├── vp.c
+        └── vp.h
+
+####修改*Makefile*
+
+{% highlight makefile linenos %}
+objects=main.o vp.o
+vp-test: $(objects)
+    gcc -o $@ $(objects)
+main.o: main.c
+    gcc -o $@ -c $<
+vp.o: vp.c vp.h
+    gcc -o $@ -c $<
+.PHONY:
+clean:
+    -rm -f $(objects) vp-test
+{% endhighlight %}
+
+注意第5行和第7行用的是"$<"变量，而不是写死的“main.c"，该变量展开后是目录搜索后的文件名，即../source/main.c。
+
+####带VPATH编译
+
+{% highlight bash %}
+$ cd build
+$ VPATH=../source/ make
+gcc -o main.o -c ../source/main.c
+gcc -o vp.o -c ../source/vp.c
+gcc -o vp-test main.o vp.o
+{% endhighlight %}
+
+注意此时main.o、vp.o和vp-test都在当前编译目录，即build目录下生成。
+
+##一个稍复杂的实例
+
+    $ tree vpath-test
+    vpath-test
+    ├── build
+    │   ├── lib
+    │   ├── Makefile
+    │   └── obj
+    └── source
+        ├── main.c
+        ├── vp.c
+        ├── vp.h
+        ├── vp_shared.c
+        └── vp_static.c
+
+    4 directories, 6 files
+
+####编译目标要求
+Makefile实现目标，编译source下若干文件：
+
+- main.c -> main.o
+- vp.c -> vp.o
+- vp_static.c -> vp_static.o -> libvp_static.a
+- vp_shared.c -> vp_shared.o -> libvp_shared.so
+
+以上两个目标文件和两个库共同链接成vp-test可执行文件
+生成的目标文件置于build/obj下，库文件置于build/lib下，可执行文件置于build目录下。
+
+*source/main.c*:
+
+{% highlight c linenos %}
+#include <stdio.h>
+#include "vp.h"
+
+int main(int argc, char *argv[])
+{
+    printf("Hello, VPATH!\n");
+    where();
+
+    int a = 8;
+    printf("vp_foo: a = %d\n", vp_foo(&a));
+    printf("vp_foo_static: a = %d\n", vp_foo_static(&a));
+    printf("vp_foo_shared: a = %d\n", vp_foo_shared(&a));
+
+    return 0;
+}
+{% endhighlight %}
+
+*build/Makefile*:
+    
+{% highlight makefile linenos %}
+.SUFFIXES:
+CC=gcc
+LIB_DIR=lib
+OBJ_DIR=obj
+CFLAGS=-g -O2 -Wall
+LIBS=vp_static vp_shared
+LDFLAGS=-L$(LIB_DIR) $(addprefix -l, $(LIBS))
+objects=main.o vp.o
+
+vp-test: $(objects) libvp_static.a libvp_shared.so
+    $(CC) -o $@ $(addprefix $(OBJ_DIR)/, $(objects)) $(LDFLAGS)
+main.o: main.c vp.h
+    $(CC) $(CFLAGS) -o $(OBJ_DIR)/$@ -c $<
+vp.o: vp.c vp.h
+    $(CC) $(CFLAGS) -o $(OBJ_DIR)/$@ -c $<
+
+libvp_static.a: vp_static.o
+    ar -rcs $(LIB_DIR)/$@ $(OBJ_DIR)/$<
+vp_static.o: vp_static.c vp.h
+    $(CC) $(CFLAGS) -o $(OBJ_DIR)/$@ -c $<
+libvp_shared.so: vp_shared.o
+    $(CC) -shared -o $(LIB_DIR)/$@ $(OBJ_DIR)/$<
+vp_shared.o: vp_shared.c vp.h
+    $(CC) $(CFLAGS) -o $(OBJ_DIR)/$@ -fPIC -c $<
+
+.PHONY:
+clean:
+    -rm -f $(LIB_DIR)/* $(OBJ_DIR)/* vp-test
+{% endhighlight %}
+
+#### 编译过程及结果
+进入build目录编译构建项目，并运行查看结果
+
+{% highlight bash %}
+$ cd build/
+$ VPATH=../source make
+gcc -g -O2 -Wall -o obj/main.o -c ../source/main.c
+gcc -g -O2 -Wall -o obj/vp.o -c ../source/vp.c
+gcc -g -O2 -Wall -o obj/vp_static.o -c ../source/vp_static.c
+ar -rcs lib/libvp_static.a obj/vp_static.o
+gcc -g -O2 -Wall -o obj/vp_shared.o -fPIC -c ../source/vp_shared.c
+gcc -shared -o lib/libvp_shared.so obj/vp_shared.o
+gcc -o vp-test obj/main.o obj/vp.o -Llib -lvp_static -lvp_shared
+    
+$ LD_LIBRARY_PATH=./lib ./vp-test 
+Hello, VPATH!
+../source/main.c(7)-main
+vp_foo() invoked.
+../source/vp.c(7)-vp_foo
+vp_foo: a = 7
+vp_foo_static() invoked.
+../source/vp_static.c(7)-vp_foo_static
+vp_foo_static: a = 6
+vp_foo_shared() invoked.
+../source/vp_shared.c(7)-vp_foo_shared
+vp_foo_shared: a = 5
+{% endhighlight %}
+
+
+#### 编译多个源代码目录
+    
+{% highlight bash %}
+$ cp -r source source-1
+$ cd build/
+{% endhighlight %}
+
+只需更改VPATH变量为对应的源文件目录，即可在同一build目录下编译。
+    
+{% highlight bash %}
+$ VPATH=../source-1 make
+gcc -g -O2 -Wall -o obj/main.o -c ../source-1/main.c
+gcc -g -O2 -Wall -o obj/vp.o -c ../source-1/vp.c
+gcc -g -O2 -Wall -o obj/vp_static.o -c ../source-1/vp_static.c
+ar -rcs lib/libvp_static.a obj/vp_static.o
+gcc -g -O2 -Wall -o obj/vp_shared.o -fPIC -c ../source-1/vp_shared.c
+gcc -shared -o lib/libvp_shared.so obj/vp_shared.o
+gcc -o vp-test obj/main.o obj/vp.o -Llib -lvp_static -lvp_shared
+
+$ LD_LIBRARY_PATH=./lib ./vp-test 
+Hello, VPATH!
+../source-1/main.c(7)-main
+vp_foo() invoked.
+../source-1/vp.c(7)-vp_foo
+vp_foo: a = 7
+vp_foo_static() invoked.
+../source-1/vp_static.c(7)-vp_foo_static
+vp_foo_static: a = 6
+vp_foo_shared() invoked.
+../source-1/vp_shared.c(7)-vp_foo_shared
+vp_foo_shared: a = 5
+{% endhighlight %}
+
+####实例小结
+
+源代码工作区和编译构建工作区分离。
+
+通过VPATH设置实现在同一个build目录中，编译构建目录结构相近但不同的（目录名不同，代码实现不同等）源代码，如代码的不同版本（或如android不同机型）等等。
