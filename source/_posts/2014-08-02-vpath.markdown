@@ -36,27 +36,28 @@ b. If the target does need to be rebuilt (is out-of-date), the pathname found du
 ###自动化变量
 make在执行时，通过目录搜索得到的目标的依赖文件可能会在其它目录（此时依赖文件为文件的完整路径名），但是已经存在的规则命令却不能发生变化。因此，书写命令时我们必须保证当依赖文件在其它目录下被发现时规则的命令能够正确执行。
 
-    "$^": a list of all the prerequisites of the rule, including the names of the directories in which they were found
-    通过目录搜索得到的依赖文件的完整路径名（目录+一般文件名）列表
+- "$^": a list of all the prerequisites of the rule, including the names of the directories in which they were found
 
-    "$<": the first prerequisite
-    通过目录搜索得到的依赖文件列表的第一个依赖文件
+通过目录搜索得到的依赖文件的完整路径名（目录+一般文件名）列表
+
+- "$<": the first prerequisite
+
+通过目录搜索得到的依赖文件列表的第一个依赖文件
     
-    "$@": the target
-    规则的目标
+- "$@": the target
+
+规则的目标
 
 ##一个简单的实例
 
 ###普通当前单目录build
 
-```
-$ tree vpath-test
-vpath-test
-├── main.c
-├── Makefile
-├── vp.c
-└── vp.h
-```
+    $ tree vpath-test
+    vpath-test
+    ├── main.c
+    ├── Makefile
+    ├── vp.c
+    └── vp.h
 
 *Makefile*:
 
@@ -75,25 +76,21 @@ clean:
 
 执行编译
 
-```
-$ make
-gcc -o main.o -c main.c
-gcc -o vp.o -c vp.c
-gcc -o vp-test main.o vp.o
-```
+    $ make
+    gcc -o main.o -c main.c
+    gcc -o vp.o -c vp.c
+    gcc -o vp-test main.o vp.o
 
 ###使用VPATH,build与source目录分离
 
-```
-$ tree vpath-test
-vpath-test
-├── build
-│   └── Makefile
-└── source
-    ├── main.c
-    ├── vp.c
-    └── vp.h
-```
+    $ tree vpath-test
+    vpath-test
+    ├── build
+    │   └── Makefile
+    └── source
+        ├── main.c
+        ├── vp.c
+        └── vp.h
 
 ####修改*Makefile*
 
@@ -114,34 +111,30 @@ clean:
 
 ####带VPATH编译
 
-```
-$ cd build
-$ VPATH=../source/ make
-gcc -o main.o -c ../source/main.c
-gcc -o vp.o -c ../source/vp.c
-gcc -o vp-test main.o vp.o
-```
+    $ cd build
+    $ VPATH=../source/ make
+    gcc -o main.o -c ../source/main.c
+    gcc -o vp.o -c ../source/vp.c
+    gcc -o vp-test main.o vp.o
 
 注意此时main.o、vp.o和vp-test都在当前编译目录，即build目录下生成。
 
 ##一个稍复杂的实例
 
-```
-$ tree vpath-test
-vpath-test
-├── build
-│   ├── lib
-│   ├── Makefile
-│   └── obj
-└── source
-    ├── main.c
-    ├── vp.c
-    ├── vp.h
-    ├── vp_shared.c
-    └── vp_static.c
+    $ tree vpath-test
+    vpath-test
+    ├── build
+    │   ├── lib
+    │   ├── Makefile
+    │   └── obj
+    └── source
+        ├── main.c
+        ├── vp.c
+        ├── vp.h
+        ├── vp_shared.c
+        └── vp_static.c
 
-4 directories, 6 files
-```
+    4 directories, 6 files
 
 ####编译目标要求
 Makefile实现目标，编译source下若干文件：
@@ -210,64 +203,58 @@ clean:
 #### 编译过程及结果
 进入build目录编译构建项目，并运行查看结果
 
-```
-$ cd build/
-$ VPATH=../source make
-gcc -g -O2 -Wall -o obj/main.o -c ../source/main.c
-gcc -g -O2 -Wall -o obj/vp.o -c ../source/vp.c
-gcc -g -O2 -Wall -o obj/vp_static.o -c ../source/vp_static.c
-ar -rcs lib/libvp_static.a obj/vp_static.o
-gcc -g -O2 -Wall -o obj/vp_shared.o -fPIC -c ../source/vp_shared.c
-gcc -shared -o lib/libvp_shared.so obj/vp_shared.o
-gcc -o vp-test obj/main.o obj/vp.o -Llib -lvp_static -lvp_shared
-    
-$ LD_LIBRARY_PATH=./lib ./vp-test 
-Hello, VPATH!
-../source/main.c(7)-main
-vp_foo() invoked.
-../source/vp.c(7)-vp_foo
-vp_foo: a = 7
-vp_foo_static() invoked.
-../source/vp_static.c(7)-vp_foo_static
-vp_foo_static: a = 6
-vp_foo_shared() invoked.
-../source/vp_shared.c(7)-vp_foo_shared
-vp_foo_shared: a = 5
-```
+    $ cd build/
+    $ VPATH=../source make
+    gcc -g -O2 -Wall -o obj/main.o -c ../source/main.c
+    gcc -g -O2 -Wall -o obj/vp.o -c ../source/vp.c
+    gcc -g -O2 -Wall -o obj/vp_static.o -c ../source/vp_static.c
+    ar -rcs lib/libvp_static.a obj/vp_static.o
+    gcc -g -O2 -Wall -o obj/vp_shared.o -fPIC -c ../source/vp_shared.c
+    gcc -shared -o lib/libvp_shared.so obj/vp_shared.o
+    gcc -o vp-test obj/main.o obj/vp.o -Llib -lvp_static -lvp_shared
+        
+    $ LD_LIBRARY_PATH=./lib ./vp-test 
+    Hello, VPATH!
+    ../source/main.c(7)-main
+    vp_foo() invoked.
+    ../source/vp.c(7)-vp_foo
+    vp_foo: a = 7
+    vp_foo_static() invoked.
+    ../source/vp_static.c(7)-vp_foo_static
+    vp_foo_static: a = 6
+    vp_foo_shared() invoked.
+    ../source/vp_shared.c(7)-vp_foo_shared
+    vp_foo_shared: a = 5
 
 
 #### 编译多个源代码目录
     
-```
-$ cp -r source source-1
-$ cd build/
-```
+    $ cp -r source source-1
+    $ cd build/
 
 只需更改VPATH变量为对应的源文件目录，即可在同一build目录下编译。
     
-```
-$ VPATH=../source-1 make
-gcc -g -O2 -Wall -o obj/main.o -c ../source-1/main.c
-gcc -g -O2 -Wall -o obj/vp.o -c ../source-1/vp.c
-gcc -g -O2 -Wall -o obj/vp_static.o -c ../source-1/vp_static.c
-ar -rcs lib/libvp_static.a obj/vp_static.o
-gcc -g -O2 -Wall -o obj/vp_shared.o -fPIC -c ../source-1/vp_shared.c
-gcc -shared -o lib/libvp_shared.so obj/vp_shared.o
-gcc -o vp-test obj/main.o obj/vp.o -Llib -lvp_static -lvp_shared
+    $ VPATH=../source-1 make
+    gcc -g -O2 -Wall -o obj/main.o -c ../source-1/main.c
+    gcc -g -O2 -Wall -o obj/vp.o -c ../source-1/vp.c
+    gcc -g -O2 -Wall -o obj/vp_static.o -c ../source-1/vp_static.c
+    ar -rcs lib/libvp_static.a obj/vp_static.o
+    gcc -g -O2 -Wall -o obj/vp_shared.o -fPIC -c ../source-1/vp_shared.c
+    gcc -shared -o lib/libvp_shared.so obj/vp_shared.o
+    gcc -o vp-test obj/main.o obj/vp.o -Llib -lvp_static -lvp_shared
 
-$ LD_LIBRARY_PATH=./lib ./vp-test 
-Hello, VPATH!
-../source-1/main.c(7)-main
-vp_foo() invoked.
-../source-1/vp.c(7)-vp_foo
-vp_foo: a = 7
-vp_foo_static() invoked.
-../source-1/vp_static.c(7)-vp_foo_static
-vp_foo_static: a = 6
-vp_foo_shared() invoked.
-../source-1/vp_shared.c(7)-vp_foo_shared
-vp_foo_shared: a = 5
-```
+    $ LD_LIBRARY_PATH=./lib ./vp-test 
+    Hello, VPATH!
+    ../source-1/main.c(7)-main
+    vp_foo() invoked.
+    ../source-1/vp.c(7)-vp_foo
+    vp_foo: a = 7
+    vp_foo_static() invoked.
+    ../source-1/vp_static.c(7)-vp_foo_static
+    vp_foo_static: a = 6
+    vp_foo_shared() invoked.
+    ../source-1/vp_shared.c(7)-vp_foo_shared
+    vp_foo_shared: a = 5
 
 ####实例小结
 
