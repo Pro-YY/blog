@@ -48,12 +48,15 @@ make在执行时，通过目录搜索得到的目标的依赖文件可能会在�
 ##一个简单的实例
 
 ###普通当前单目录build
-    $ tree vpath-test
-    vpath-test
-    ├── main.c
-    ├── Makefile
-    ├── vp.c
-    └── vp.h
+
+```
+$ tree vpath-test
+vpath-test
+├── main.c
+├── Makefile
+├── vp.c
+└── vp.h
+```
 
 *Makefile*:
 
@@ -70,23 +73,27 @@ clean:
     -rm -f $(objects) vp-test
 ```
 
-{% highlight bash %}
+执行编译
+
+```
 $ make
 gcc -o main.o -c main.c
 gcc -o vp.o -c vp.c
 gcc -o vp-test main.o vp.o
-{% endhighlight %}
+```
 
 ###使用VPATH,build与source目录分离
 
-    $ tree vpath-test
-    vpath-test
-    ├── build
-    │   └── Makefile
-    └── source
-        ├── main.c
-        ├── vp.c
-        └── vp.h
+```
+$ tree vpath-test
+vpath-test
+├── build
+│   └── Makefile
+└── source
+    ├── main.c
+    ├── vp.c
+    └── vp.h
+```
 
 ####修改*Makefile*
 
@@ -107,32 +114,34 @@ clean:
 
 ####带VPATH编译
 
-{% highlight bash %}
+```
 $ cd build
 $ VPATH=../source/ make
 gcc -o main.o -c ../source/main.c
 gcc -o vp.o -c ../source/vp.c
 gcc -o vp-test main.o vp.o
-{% endhighlight %}
+```
 
 注意此时main.o、vp.o和vp-test都在当前编译目录，即build目录下生成。
 
 ##一个稍复杂的实例
 
-    $ tree vpath-test
-    vpath-test
-    ├── build
-    │   ├── lib
-    │   ├── Makefile
-    │   └── obj
-    └── source
-        ├── main.c
-        ├── vp.c
-        ├── vp.h
-        ├── vp_shared.c
-        └── vp_static.c
+```
+$ tree vpath-test
+vpath-test
+├── build
+│   ├── lib
+│   ├── Makefile
+│   └── obj
+└── source
+    ├── main.c
+    ├── vp.c
+    ├── vp.h
+    ├── vp_shared.c
+    └── vp_static.c
 
-    4 directories, 6 files
+4 directories, 6 files
+```
 
 ####编译目标要求
 Makefile实现目标，编译source下若干文件：
@@ -147,7 +156,7 @@ Makefile实现目标，编译source下若干文件：
 
 *source/main.c*:
 
-{% highlight c linenos %}
+``` c source/main.c
 #include <stdio.h>
 #include "vp.h"
 
@@ -163,11 +172,11 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-{% endhighlight %}
+```
 
 *build/Makefile*:
     
-{% highlight makefile linenos %}
+``` makefile build/Makefile
 .SUFFIXES:
 CC=gcc
 LIB_DIR=lib
@@ -196,12 +205,12 @@ vp_shared.o: vp_shared.c vp.h
 .PHONY:
 clean:
     -rm -f $(LIB_DIR)/* $(OBJ_DIR)/* vp-test
-{% endhighlight %}
+```
 
 #### 编译过程及结果
 进入build目录编译构建项目，并运行查看结果
 
-{% highlight bash %}
+```
 $ cd build/
 $ VPATH=../source make
 gcc -g -O2 -Wall -o obj/main.o -c ../source/main.c
@@ -224,19 +233,19 @@ vp_foo_static: a = 6
 vp_foo_shared() invoked.
 ../source/vp_shared.c(7)-vp_foo_shared
 vp_foo_shared: a = 5
-{% endhighlight %}
+```
 
 
 #### 编译多个源代码目录
     
-{% highlight bash %}
+```
 $ cp -r source source-1
 $ cd build/
-{% endhighlight %}
+```
 
 只需更改VPATH变量为对应的源文件目录，即可在同一build目录下编译。
     
-{% highlight bash %}
+```
 $ VPATH=../source-1 make
 gcc -g -O2 -Wall -o obj/main.o -c ../source-1/main.c
 gcc -g -O2 -Wall -o obj/vp.o -c ../source-1/vp.c
@@ -258,7 +267,7 @@ vp_foo_static: a = 6
 vp_foo_shared() invoked.
 ../source-1/vp_shared.c(7)-vp_foo_shared
 vp_foo_shared: a = 5
-{% endhighlight %}
+```
 
 ####实例小结
 
