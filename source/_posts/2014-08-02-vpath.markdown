@@ -57,7 +57,7 @@ make在执行时，通过目录搜索得到的目标的依赖文件可能会在�
 
 *Makefile*:
 
-{% highlight makefile linenos %}
+``` makefile linenos
 objects=main.o vp.o
 vp-test: $(objects)
     gcc -o $@ $(objects)
@@ -68,7 +68,7 @@ vp.o: vp.c vp.h
 .PHONY:
 clean:
     -rm -f $(objects) vp-test
-{% endhighlight %}
+```
 
 {% highlight bash %}
 $ make
