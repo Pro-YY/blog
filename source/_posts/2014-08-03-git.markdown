@@ -1,0 +1,182 @@
+---
+layout: post
+title: "git常用操作总结"
+date: 2014-08-03 10:52:34 +0800
+comments: true
+categories: 
+---
+
+### 入门参考
+
+- [Pro Git](http://git-scm.com/doc)及其[中文版](http://git-scm.com/book/zh)
+- [Git Reference](http://gitref.org/)也可以，略简单。
+- man手册最方便，如 man git-merge
+
+### 配置文件
+
+git config
+
+    git config -e       ==> (.git/config)
+    git config --global ==>(~/.gitconfig)
+    git config --system ==>(/etc/gitconfig)
+
+命令别名很实用，lol 命令很适合学习分支。
+
+    [alias]
+        st = status
+        ci = commit
+        co = checkout
+        br = branch
+        lol = log --abbrev-commit --pretty=oneline --graph --decorate
+        last = log -1 HEAD
+        unstage = reset HEAD --
+        uncommit = git reset --hard HEAD~1
+    [push]
+        default = simple
+    [core]
+        editor = vim
+    [merge]
+        tool = vimdiff
+
+
+### 初始化操作
+init repository
+    
+    git init
+    git add .
+    git commit -m 'first commit'
+
+add repository
+
+    git git clone --bare . ../XXX.git
+    git remote add orgin ../XXX.git
+    #git push/pull orgin master
+
+new branch
+
+    git checkout -b dev
+    #git push/pull origin dev
+
+checkout from a commit, and 'detached HEAD'
+
+    git checkout 7b31dfd .
+    git checkout 7b31dfd -b new_branch
+
+### 查看差异
+diff branch/commit
+    
+    git diff origin/master..master
+    git diff 7b31dfd..7b8fe51
+
+### 撤销异常操作
+
+正如一个不支持异常处理的CPU就只相当于半个CPU，不能期望任何用户永远*正常地*使用任何工具。
+
+cancel modify
+
+    git checkout -- <file>
+
+cancel stage
+
+    git reset HEAD --
+    git reset HEAD -- <file>
+
+modify last commit
+
+    git commmit --amend
+
+cancel last commit
+
+    git reset --hard HEAD~1
+
+reset current commit to specified commit, unmerge
+
+    git reset --hard 81813d0
+    
+    * 7b31dfd (HEAD, master) add readme, and modified
+    * b92f08b ignore
+    * 81813d0 (origin/master, b1) first commit
+
+###远程仓库
+
+fetch all branch
+
+    git fetch origin
+
+pull = fetch + merge
+
+author create/upload remote branch
+
+    git push origin b1
+
+others track remote branch，先更新远端仓库在本地的快照，这样才能看到别人新上传的分支
+
+    git remote update
+    git checkout --track origin/b1
+
+delete remote branch
+
+    git push origin :b1
+
+###衍合操作
+
+rebase操作，翻译为[衍合](http://git-scm.com/book/en/Git-Branching-Rebasing)：回到新基底，再依次应用补丁，相比merge看起来更干净。
+虽然最后整合得到的结果没有任何区别，但衍合能产生一个更为整洁的提交历史。如果视察一个衍合过的分支的历史记录，看起来会更清楚：仿佛所有修改都是在一根线上先后进行的，尽管实际上它们原本是同时并行发生的。
+。
+
+与merge操作差异：
+merge 后两个参数commit/branch 没有先后，所以可以用一个参数，另一个为当前HEAD
+merge是把两个分支最新的快照和以及二者最新的共同祖先进行三方合并，合并的结果是产生一个新的提交对象。
+rebase是把在一个分支里提交的改变移到另一个分支里重放一遍。
+merge只生成一个新的提交对象commit，rebase改了本分支的历史中一系列提交对象。
+merge的两次提交对象地位等同，而rebase的两个分支明显有轻重。
+
+应用：把解决分支补丁同最新主干代码之间冲突的责任，化转为由提交补丁的人来解决。维护者就不需要做任何整合工作。不要衍合公共分支：在进行衍合的时候，实际上抛弃了一些现存的提交对象而创造了一些类似但**不同的新的提交对象**。
+
+常用：rebase -i 参数更好用，可以调整提交的信息，合并多次提交
+
+一点思考：对于git命令需明确，**生成了新的提交对象commit**，还是**只是移动了HEAD或branch指针**？
+
+### cherry-pick 操作
+
+git-cherry-pick - Apply the changes introduced by some existing commits.
+
+即直接应用一次更新的提交，可以是其他分支的提交。生成新的提交对象，包含一次新的commit。冲突解决的方法是，先reset到共同的根然后提交。
+
+    git cherry-pick COMMIT_ID
+    git cherry-pick --abort
+
+### git log 搜索
+git log -g --grep=SEARCH_STRING
+
+### 签名并覆盖 
+git commit -s --amend
+
+###gitk gitg ...
+图形展git示查看当前git仓库信息，包括分支、提交、diff、文件等。
+
+##repo 命令
+
+repo是google开发的git封装工具，用来更好的结合gerrit等系统方便Android开发。官方的参考: [Repo command reference](https://source.android.com/source/using-repo.html)
+
+####repo sync
+
+    git remote update 
+    git rebase origin/BRANCH
+
+####repo upload [PROJECT_LIST]
+
+将当前branch的project传输至Gerrit服务器，过程需要建立HTTPS安全连接完成授权，之后reviewer可以comment每个commit。在upload之前，通常需要用rebase -i或git commit --amend命令将若干个关键点提交组合成一个提交。
+
+可以同步或上传单个项目
+
+    repo sync build
+    repo upload .
+
+####Gerrit
+Gerrit是搭建于git之上的网页版代码审查系统。AOSP和其他Android定制开发也都使用Gerrit。可以参考它的使用文档。
+
+[Gerrit Code Review 官方文档](http://gerrit-review.googlesource.com/Documentation/)
+
+特别是[Gerrit系统上的Android代码提交流程图](http://source.android.com/source/life-of-a-patch.html)
+
