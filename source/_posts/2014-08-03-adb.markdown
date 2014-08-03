@@ -1,0 +1,69 @@
+---
+layout: post
+title: "adb工具原理和使用"
+date: 2014-08-03 08:47:18 +0800
+comments: true
+categories: debug
+---
+
+##adb介绍
+
+ADB([Android Debug Bridge](http://developer.android.com/tools/help/adb.html))
+命令行工具使得开发主机可以同android设备或模拟器实例进行通信，是一个客户端-服务器架构的程序，包含以下三部分:
+
+- **client**:
+
+    运行于开发主机的客户端程序，通过adb命令从shell启动
+
+- **server**:
+
+    运行于开发主机的后台进程，管理client与daemon之间的通信
+
+- **daemon**:
+
+    运行于模拟器或android设备的后台进程
+
+从shell第一次执行adb client命令时，adb会自动启动server。server默认绑定到**本地5037号TCP端口**，与client通信。同时，server会扫描范围在5555-5585之间的所有设备/模拟器实例所占用的端口，并与其上的daemon连接。
+
+##adb使用场景及操作方法
+
+###adb远程调试
+
+adb工具的实现支持远程调试，适用于client和server位于不同开发主机的情况。
+client和server所在主机只需网络可达，不需要额外的授权验证操作。
+
+参考[http://stackoverflow.com/questions/13278429/how-to-set-up-adb-for-remote-machine-development-and-local-device-deployment](http://stackoverflow.com/questions/13278429/how-to-set-up-adb-for-remote-machine-development-and-local-device-deployment)
+
+具体操作方法如下：
+
+server: '-a'参数启动adb server，可以监听所有端口
+
+    adb -a -P5037 fork-server server
+
+client: '-H'参数连接位于指定主机上的adb server
+
+    adb -H<server_IP> devices
+    adb -H<server_IP> shell
+
+###adb wifi调试
+
+adb工具还支持server同daemon之间通过wifi连接。传输速度相比USB线连接时慢一些。
+
+参考[http://stackoverflow.com/questions/2604727/how-can-i-connect-to-android-with-adb-over-tcp](http://stackoverflow.com/questions/2604727/how-can-i-connect-to-android-with-adb-over-tcp)
+
+device需要开启wifi，并可以连接开发机。
+
+####查看device IP(USB已经连接)
+
+    adb shell ip -f inet addr show wlan0
+
+当然也可以直接在device上直接看。
+
+####wifi连接调试
+
+    adb tcpip 5555
+    adb connect <device_IP>:5555
+
+重新启用usb
+
+    adb usb

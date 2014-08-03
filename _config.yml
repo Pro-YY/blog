@@ -2,12 +2,13 @@
 #      Main Configs       #
 # ----------------------- #
 
-url: http://Pro-YY.github.io
+#url: http://Pro-YY.github.io
+url: http://this@pro-yy.com
 title: YangYang's Blog
 subtitle: 记录分享每一刻的进步
 author: 杨阳
 simple_search: https://www.google.com/search
-description:
+description: YangYang's blog
 
 # Default date format is "ordinal" (resulting in "July 22nd 2007")
 # You can customize the format as defined in
@@ -19,7 +20,7 @@ date_format: "ordinal"
 subscribe_rss: /atom.xml
 subscribe_email:
 # RSS feeds can list your email address if you like
-email:
+email: this@pro-yy.com
 
 # ----------------------- #
 #    Jekyll & Plugins     #
@@ -64,13 +65,13 @@ default_asides: [asides/recent_posts.html, asides/github.html, asides/delicious.
 # ----------------------- #
 
 # Github repositories
-github_user:
+github_user: Pro-YY
 github_repo_count: 0
 github_show_profile_link: true
 github_skip_forks: true
 
 # Twitter
-twitter_user:
+twitter_user: Valkyryy
 twitter_tweet_button: true
 
 # Google +1
