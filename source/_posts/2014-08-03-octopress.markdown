@@ -95,6 +95,10 @@ categories: octopress
 </ul>
 ```
 
+### 添加disqus评论
+
+参考[http://asaf.github.io/blog/2013/07/08/blogging-with-octopress-add-comments/](http://asaf.github.io/blog/2013/07/08/blogging-with-octopress-add-comments/)
+
 ### 更新octopress
 
     git remote add octopress https://github.com/imathis/octopress
