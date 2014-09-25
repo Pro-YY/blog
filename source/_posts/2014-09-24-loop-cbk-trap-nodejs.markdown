@@ -6,11 +6,11 @@ comments: true
 categories: nodejs
 ---
 
-# Node.js中循环与回调函数的陷阱
+##问题描述
 
-问题描述：访问3个url，按顺序输出HTTP响应。先后做出以下两种实现：
+访问3个url，按顺序输出HTTP响应。先后做出以下两种实现：
 
-### Version 1 (nearly official solution, worked of course)
+###Version 1 (nearly official solution, worked of course)
 
 ``` javascript 09-juggling-async/09-juggling-async.js
 var http = require('http');
@@ -79,6 +79,8 @@ output:
     requested url: http://www.mi.com/2
     result length:1
 
+## 错误分析
+
 看似类似的函数，结果完全不同，其中第二种实现是错误的。加入debug，输出每次执行的i值，清楚了错误原因。
 
 #### debug it
@@ -113,7 +115,9 @@ output:
 
 其错误在于：回调函数执行时，循环已经结束，i值已经等于3，接着，回调函数将响应存在了同一个地方result[process.argv[3]]。
 
-解决方法：通过函数（匿名函数或闭包）等方式，使得回调函数保留对i的引用，不释放即可。
+## 解决方法
+
+通过函数（匿名函数或闭包）等方式，使得回调函数保留对i的引用，不释放即可。
 
 ###Version 3: Closure (worked as expected)
 ``` javascript 09-juggling-async/09-juggling-async.js
