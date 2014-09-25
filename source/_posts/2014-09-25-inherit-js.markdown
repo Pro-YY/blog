@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Nodejs中实现类的继承"
+title: "Node.js中实现类的继承"
 date: 2014-09-25 20:07:52 +0800
 comments: true
 categories: nodejs
