@@ -8,16 +8,17 @@ categories: nodejs
 
 ## Class
 ```javascript device.js
+var EventEmitter = require('events').EventEmitter;
+var util = require('util');
+
 function Device (name) {
   this.name = name;
 }
 
-Device.prototype.powerOn = function () {
-  console.log(this.name + ' is powered on');
-}
+util.inherits(Device, EventEmitter);
 
-Device.prototype.getName = function () {
-  return this.name;
+Device.prototype.powerOn = function () {
+  console.log('Device: ' + this.name + ' is powered on');
 }
 
 module.exports = Device;
@@ -28,20 +29,29 @@ module.exports = Device;
 var Device = require('./device');
 var util = require('util');
 
+/* override/customize parent constructor */
 function Phone (name, conn) {
-  Phone.super_.apply(this, arguments);
+  Device.apply(this, arguments);
   this.conn = conn; 
 }
 
 util.inherits(Phone, Device);
 
-Phone.prototype.getConn = function() {
-  return this.conn;
+/* override/customize parent method */
+Phone.prototype.powerOn = function () {
+  Device.prototype.powerOn.apply(this, arguments);
+  console.log('Phone: ' + this.name + ' is powered on');
 }
 
-Phone.prototype.call = function() {
+/* new method of susbclass */
+Phone.prototype.call = function () {
   console.log(this.name + ' maked a ' + this.conn + ' call');
 }
+
+/* customize ancester method */
+Phone.prototype.on('incoming', function (who) {
+  console.log('Phone: ' + this.name + ' got a call from ' + who);
+});
 
 module.exports = Phone;
 ```
@@ -56,9 +66,11 @@ var d2 = new Device('Mi TV');
 
 d1.powerOn();
 d2.powerOn();
+console.log('---------------------------------');
 
 var p1 = new Phone('Redmi 1S', 'GSM');
 var p2 = new Phone('Mi 3', 'WCDMA');
+var p3 = new Phone('Mi 4', 'FDD-LTE');
 
 p1.powerOn();
 p1.call();
@@ -66,17 +78,41 @@ p1.call();
 p2.powerOn();
 p2.call();
 
-console.log(p1 instanceof Phone);
-console.log(p1 instanceof Device);
-console.log(Phone.super_ === Device);
+p3.powerOn();
+p3.call();
+console.log('---------------------------------');
+
+setTimeout(function () {
+  console.log('\n3 seconds later...');
+  p1.emit('incoming', 'Alice');
+  p2.emit('incoming', 'Bob');
+  p3.emit('incoming', 'Wendy');
+  p3.emit('myincoming', 'Wendy');
+}, 3000);
+
+/* add additional event listener*/
+p3.on('myincoming', function (friend) {
+  console.log('My Mi 4 Got A Call From: ' + friend);
+});
 ```
 
-    Mi Box is powered on
-    Mi TV is powered on
-    Redmi 1S is powered on
+    Device: Mi Box is powered on
+    Device: Mi TV is powered on
+    ---------------------------------
+    Device: Redmi 1S is powered on
+    Phone: Redmi 1S is powered on
     Redmi 1S maked a GSM call
-    Mi 3 is powered on
+    Device: Mi 3 is powered on
+    Phone: Mi 3 is powered on
     Mi 3 maked a WCDMA call
-    true
-    true
-    true
+    Device: Mi 4 is powered on
+    Phone: Mi 4 is powered on
+    Mi 4 maked a FDD-LTE call
+    ---------------------------------
+
+    3 seconds later...
+    Phone: Redmi 1S got a call from Alice
+    Phone: Mi 3 got a call from Bob
+    Phone: Mi 4 got a call from Wendy
+    My Mi 4 Got A Call From: Wendy
+
