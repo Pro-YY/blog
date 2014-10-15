@@ -116,7 +116,13 @@ others track remote branch，先更新远端仓库在本地的快照，这样才
 
 delete remote branch
 
-    git push origin :b1
+    git branch -d dev
+    git push origin --delete dev
+
+delete remote commit
+
+    git reset --hard HEAD~1
+    git push --force
 
 ###衍合操作
 
@@ -173,10 +179,75 @@ repo是google开发的git封装工具，用来更好的结合gerrit等系统方�
     repo sync build
     repo upload .
 
-####Gerrit
+###Gerrit
 Gerrit是搭建于git之上的网页版代码审查系统。AOSP和其他Android定制开发也都使用Gerrit。可以参考它的使用文档。
 
 [Gerrit Code Review 官方文档](http://gerrit-review.googlesource.com/Documentation/)
 
 特别是[Gerrit系统上的Android代码提交流程图](http://source.android.com/source/life-of-a-patch.html)
+
+### Gerrit && Github
+
+Gerrit和Github仓库结合使用，关键是为本地仓库的不同的分支设定不同的远端仓库(upstream)。
+
+#### branch
+
+    submit: push and fetch from gerrit
+
+    stable: 'same' commits as submit, expect for commit message (format/sign/changid), cherry-pick each other.
+
+    dev: daily update and commit,  rebase (squash) and merge to stable, then delete 
+
+#### clone and fetch gerrit repo
+
+    git clone ssh://XXXXXXXXX@git.XXXXXX.com:XXXXX/XXXX/development
+    cd development
+    git fetch ssh://XXXXXXXXX@git.XXXXXX.com:XXXXX/XXXX/development refs/changes/XX/XXXXXX/X && git checkout FETCH_HEAD
+    git checkout -b submit
+
+#### create self branch
+
+    git checkout -b stable
+
+#### setup github repo and upstream
+
+    git remote add self git@github.com:Pro-YY/development.git
+    git remote -v
+
+    origin  ssh://XXXXXXXXX@git.XXXXXX.com:XXXXX/XXXX/development (fetch)
+    origin  ssh://XXXXXXXXX@git.XXXXXX.com:XXXXX/XXXX/development (push)
+    self    git@github.com:XXXXXX/development.git (fetch)
+    self    git@github.com:XXXXXX/development.git (push)
+
+#### push
+
+    git push -u self stable
+    git branch --all
+
+     master
+    *stable
+     submit
+     remotes/origin/HEAD -> origin/master
+     remotes/origin/master
+     remotes/self/stable
+    
+#### edit and push 'stable' to self repo
+
+    git push
+
+#### cherry-pick to gerrit 'submit'
+
+    git cherry-pick XXXXXXX
+
+#### amend commit (sign, format, hook)
+
+    gitdir=$(git rev-parse --git-dir); scp -p -P XXXXX XXXXXXXXX@git.XXXXXX.com:hooks/commit-msg ${gitdir}/hooks/
+
+#### push to gerrit repo
+
+    git push ssh://XXXXXXXXX@git.XXXXXX.com:XXXXX/XXXX/development submit:refs/for/master
+
+#### delete gerrit hook
+
+    rm -rf .git/hooks/commit-msg
 
