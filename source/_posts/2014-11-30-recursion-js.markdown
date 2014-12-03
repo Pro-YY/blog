@@ -17,7 +17,7 @@ Node.js最大的特点在于其事件循环和异步回调的编程模式。基�
 
 在node.js中实现递归算法的异步版本，及其错误处理。
 
-## 阶乘(Factorial Function) 与 斐波纳契数列(Fibonacci Sequence)
+## 阶乘(Factorial) 与 斐波纳契数列(Fibonacci Sequence)
 先从这两个教科书般的案例入手，说明基本原理和实现。
 #### 阶乘
 version 0: 同步版
